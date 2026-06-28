@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import torch
 import torch.nn as nn
+import os
 
 # ── Configuración de la página ───────────────────────────────
 st.set_page_config(
@@ -38,11 +39,10 @@ class RedNeuronalCrudo(nn.Module):
 # ── Cargar modelos ───────────────────────────────────────────
 @st.cache_resource
 def cargar_modelos():
-    # Ruta base relativa a la ubicación de este archivo
     base = os.path.join(os.path.dirname(__file__), '..', 'data')
 
-    gb     = joblib.load(os.path.join(base, 'modelo_gb_dulce_agrio.pkl'))
-    scaler = joblib.load(os.path.join(base, 'scaler_dulce_agrio.pkl'))
+    gb        = joblib.load(os.path.join(base, 'modelo_gb_dulce_agrio.pkl'))
+    scaler_gb = joblib.load(os.path.join(base, 'scaler_dulce_agrio.pkl'))
 
     modelo_nn = RedNeuronalCrudo(input_dim=8)
     modelo_nn.load_state_dict(torch.load(
@@ -52,7 +52,13 @@ def cargar_modelos():
     modelo_nn.eval()
     scaler_nn = joblib.load(os.path.join(base, 'scaler_nn.pkl'))
 
-    return gb, scaler, modelo_nn, scaler_nn
+    return gb, scaler_gb, modelo_nn, scaler_nn
+
+
+# Cargar modelos con spinner visible
+with st.spinner('Cargando modelos...'):
+    gb, scaler_gb, modelo_nn, scaler_nn = cargar_modelos()
+
 
 # ── Header ───────────────────────────────────────────────────
 st.title('🛢️ Predicción de Calidad de Hidrocarburos')
@@ -122,38 +128,56 @@ with col4:
 
 st.divider()
 
-# ── Clasificación de tipo de crudo ───────────────────────────
-if api > 31.1:
-    tipo_crudo = '🔵 Liviano'
-    color_tipo = 'blue'
-elif api >= 22.3:
-    tipo_crudo = '🟢 Mediano'
-    color_tipo = 'green'
-else:
-    tipo_crudo = '🟠 Pesado'
-    color_tipo = 'orange'
+# ── Botón de predicción ──────────────────────────────────────
+predecir = st.button('🔍 Predecir calidad', type='primary', use_container_width=True)
 
-# ── Predicción ───────────────────────────────────────────────
-if st.button('🔍 Predecir calidad', type='primary', use_container_width=True):
+# ── Información sobre los modelos (siempre visible) ──────────
+with st.expander('ℹ️ Sobre los modelos'):
+    st.markdown('''
+    **Gradient Boosting:** entrenado con 200 estimadores, profundidad 4,
+    learning rate 0.1. Features: 8 propiedades físicas sin azufre.
 
+    **Red Neuronal:** 3 capas ocultas (64→32→16 neuronas), BatchNorm,
+    Dropout, 80 épocas. Implementada en PyTorch.
+
+    Ambos modelos fueron entrenados con **8.842 muestras reales**
+    del DOE Bureau of Mines y evaluados en un conjunto de test separado
+    del 20% (1.769 muestras).
+
+    | Modelo | Accuracy | AUC-ROC |
+    |---|---|---|
+    | Gradient Boosting | 88% | 0.935 |
+    | Red Neuronal | 88% | 0.932 |
+    ''')
+
+# ── Resultados ───────────────────────────────────────────────
+if predecir:
     features = np.array([[
         api, nitrogeno, viscosidad, punto_fluidez,
         residuo_carbono, vol_gasolina, vol_nafta, vol_residuo
     ]])
 
+    # Clasificación de tipo por API
+    if api > 31.1:
+        tipo_crudo = '🔵 Liviano'
+    elif api >= 22.3:
+        tipo_crudo = '🟢 Mediano'
+    else:
+        tipo_crudo = '🟠 Pesado'
+
     # Gradient Boosting
-    X_gb = scaler_gb.transform(features)
-    proba_gb  = gb.predict_proba(X_gb)[0][1]
-    pred_gb   = 'Agrio (sour)' if proba_gb >= 0.5 else 'Dulce (sweet)'
+    X_gb     = scaler_gb.transform(features)
+    proba_gb = gb.predict_proba(X_gb)[0][1]
+    pred_gb  = 'Agrio (sour)' if proba_gb >= 0.5 else 'Dulce (sweet)'
 
     # Red Neuronal
-    X_nn = scaler_nn.transform(features)
+    X_nn     = scaler_nn.transform(features)
     X_tensor = torch.FloatTensor(X_nn)
     with torch.no_grad():
         proba_nn = modelo_nn(X_tensor).item()
     pred_nn = 'Agrio (sour)' if proba_nn >= 0.5 else 'Dulce (sweet)'
 
-    # ── Resultados ───────────────────────────────────────────
+    # ── Métricas ─────────────────────────────────────────────
     st.subheader('📊 Resultados')
 
     col_tipo, col_gb, col_nn = st.columns(3)
@@ -163,11 +187,11 @@ if st.button('🔍 Predecir calidad', type='primary', use_container_width=True):
         st.caption('Clasificación por gravedad API (norma estándar)')
 
     with col_gb:
-        emoji = '🟢' if pred_gb == 'Dulce (sweet)' else '🔴'
+        emoji_gb = '🟢' if pred_gb == 'Dulce (sweet)' else '🔴'
         st.metric(
             'Gradient Boosting',
-            f'{emoji} {pred_gb}',
-            f'Confianza: {max(proba_gb, 1-proba_gb)*100:.1f}%'
+            f'{emoji_gb} {pred_gb}',
+            f'Confianza: {max(proba_gb, 1 - proba_gb) * 100:.1f}%'
         )
         st.caption('AUC-ROC: 0.935 — modelo principal')
 
@@ -176,7 +200,7 @@ if st.button('🔍 Predecir calidad', type='primary', use_container_width=True):
         st.metric(
             'Red Neuronal (PyTorch)',
             f'{emoji_nn} {pred_nn}',
-            f'Confianza: {max(proba_nn, 1-proba_nn)*100:.1f}%'
+            f'Confianza: {max(proba_nn, 1 - proba_nn) * 100:.1f}%'
         )
         st.caption('AUC-ROC: 0.932 — modelo de comparación')
 
@@ -189,45 +213,38 @@ if st.button('🔍 Predecir calidad', type='primary', use_container_width=True):
         st.success('''
         **Clasificación estimada: Crudo dulce (Sweet)**
 
-        Basándose en las propiedades físico-químicas suministradas, los modelos 
-        predicen que el contenido de azufre probablemente sea inferior al umbral 
+        Basándose en las propiedades físico-químicas suministradas, los modelos
+        predicen que el contenido de azufre probablemente sea inferior al umbral
         industrial de 0.5% en peso.
 
-        *Esta clasificación fue inferida mediante modelos de aprendizaje automático 
-        entrenados con datos históricos. No sustituye una determinación analítica 
+        *Esta clasificación fue inferida mediante modelos de aprendizaje automático
+        entrenados con datos históricos. No sustituye una determinación analítica
         directa del contenido de azufre.*
         ''')
     else:
         st.warning('''
         **Clasificación estimada: Crudo agrio (Sour)**
 
-        Basándose en las propiedades físico-químicas suministradas, los modelos 
-        predicen que el contenido de azufre probablemente sea igual o superior 
+        Basándose en las propiedades físico-químicas suministradas, los modelos
+        predicen que el contenido de azufre probablemente sea igual o superior
         al umbral industrial de 0.5% en peso.
 
-        *Esta clasificación fue inferida mediante modelos de aprendizaje automático 
-        entrenados con datos históricos. No sustituye una determinación analítica 
+        *Esta clasificación fue inferida mediante modelos de aprendizaje automático
+        entrenados con datos históricos. No sustituye una determinación analítica
         directa del contenido de azufre.*
         ''')
 
     if pred_gb != pred_nn:
-        st.info('⚠️ Los modelos no coinciden en este caso — muestra en zona de incertidumbre. Se recomienda análisis de azufre directo.')
-
-    # ── Referencia ───────────────────────────────────────────
-    with st.expander('ℹ️ Sobre los modelos'):
-        st.markdown('''
-        **Gradient Boosting:** entrenado con 200 estimadores, profundidad 4, 
-        learning rate 0.1. Features: propiedades físicas sin azufre.
-
-        **Red Neuronal:** 3 capas ocultas (64→32→16 neuronas), BatchNorm, 
-        Dropout, 80 épocas. Implementada en PyTorch.
-
-        Ambos modelos fueron entrenados con **8.842 muestras reales** 
-        del DOE Bureau of Mines y evaluados en un conjunto de test separado 
-        del 20% (1.769 muestras).
+        st.info('''
+        ⚠️ **Los modelos no coinciden en esta muestra.**
+        Esto indica que la muestra se encuentra en una zona de incertidumbre
+        donde las propiedades físicas no son suficientemente determinantes.
+        Se recomienda realizar un análisis de azufre directo.
         ''')
 
 # ── Footer ───────────────────────────────────────────────────
 st.divider()
-st.caption('Tomás Malafiej — Licenciatura en Ciencia de Datos, UCASAL Argentina | '
-           'Datos: U.S. DOE Bureau of Mines Crude Oil Analysis Database')
+st.caption(
+    'Tomás Malafiej — Licenciatura en Ciencia de Datos, UCASAL Argentina | '
+    'Datos: U.S. DOE Bureau of Mines Crude Oil Analysis Database'
+)
