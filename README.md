@@ -85,4 +85,32 @@ Estructurar los datos del dataset DOE en una base de datos relacional normalizad
 demostrando capacidad de modelado de datos y consultas SQL aplicadas a problemas reales 
 de la industria petrolera.
 
+---
 
+## Conclusiones del análisis SHAP
+
+### ¿Qué aprendimos sobre el modelo?
+
+**Gravedad API y Residuo de carbono** son los dos predictores dominantes,
+con importancia SHAP media de 1.26 y 1.14 respectivamente. Juntos explican
+la mayor parte de las decisiones del modelo.
+
+**Interpretación física:**
+- API alto (crudo liviano) → empuja hacia dulce ✅
+- Residuo carbono alto (crudo sucio) → empuja hacia agrio ✅
+- Vol. gasolina/nafta alto → empuja hacia dulce ✅
+
+Estas relaciones son **físicamente coherentes** con la química del petróleo,
+lo que valida que el modelo aprendió patrones reales y no correlaciones espurias.
+
+**Punto de fluidez y Viscosidad** tienen impacto mínimo en la mayoría de
+las muestras, consistente con su baja correlación con el azufre observada
+en el EDA (notebook 01).
+
+### Valor para AmSpec
+
+El análisis SHAP permite **auditar cada predicción individualmente**:
+en lugar de un resultado de caja negra, el sistema puede explicar exactamente
+qué propiedad de la muestra determinó la clasificación. Esto es crítico
+en un contexto de certificación industrial donde la trazabilidad de las
+decisiones es un requisito.

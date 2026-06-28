@@ -4,6 +4,8 @@ import numpy as np
 import joblib
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
+import shap
 import os
 
 # ── Configuración de la página ───────────────────────────────
@@ -52,12 +54,15 @@ def cargar_modelos():
     modelo_nn.eval()
     scaler_nn = joblib.load(os.path.join(base, 'scaler_nn.pkl'))
 
-    return gb, scaler_gb, modelo_nn, scaler_nn
+    # Cargar explainer SHAP una sola vez
+    explainer = shap.TreeExplainer(gb)
+
+    return gb, scaler_gb, modelo_nn, scaler_nn, explainer
 
 
-# Cargar modelos con spinner visible
+# Cargar con spinner visible
 with st.spinner('Cargando modelos...'):
-    gb, scaler_gb, modelo_nn, scaler_nn = cargar_modelos()
+    gb, scaler_gb, modelo_nn, scaler_nn, explainer = cargar_modelos()
 
 
 # ── Header ───────────────────────────────────────────────────
@@ -241,6 +246,46 @@ if predecir:
         donde las propiedades físicas no son suficientemente determinantes.
         Se recomienda realizar un análisis de azufre directo.
         ''')
+
+    # ── Explicación SHAP ─────────────────────────────────────
+    st.divider()
+    st.subheader('🔍 ¿Por qué el modelo tomó esta decisión?')
+    st.caption('Análisis SHAP — contribución de cada propiedad a la predicción')
+
+    with st.spinner('Calculando explicación...'):
+        shap_vals = explainer.shap_values(X_gb)[0]
+
+        nombres = [
+            'Gravedad API',     'Nitrógeno (%)',
+            'Viscosidad 100°F', 'Punto de fluidez',
+            'Residuo carbono (%)', 'Vol. gasolina ligera',
+            'Vol. gasolina/nafta', 'Vol. residuo'
+        ]
+
+        orden   = np.argsort(np.abs(shap_vals))[::-1]
+        colores = ['#e74c3c' if v > 0 else '#3498db' for v in shap_vals[orden]]
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.barh(
+            [nombres[i] for i in orden][::-1],
+            shap_vals[orden][::-1],
+            color=colores[::-1], edgecolor='white'
+        )
+        ax.axvline(x=0, color='black', linewidth=0.8)
+        ax.set_xlabel('Contribución SHAP\n(rojo → agrio  |  azul → dulce)')
+        ax.set_title(
+            f'Explicación de la predicción: {pred_gb}',
+            fontweight='bold', fontsize=11
+        )
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
+
+    st.caption('''
+    **Cómo leer este gráfico:** cada barra muestra cuánto influyó esa propiedad
+    en la predicción. Las barras rojas empujan hacia "agrio", las azules hacia "dulce".
+    La longitud indica la magnitud del impacto.
+    ''')
 
 # ── Footer ───────────────────────────────────────────────────
 st.divider()

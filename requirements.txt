@@ -8,3 +8,4 @@ streamlit
 xlrd
 matplotlib
 seaborn
+shap
