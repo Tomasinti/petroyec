@@ -72,3 +72,17 @@ El Gradient Boosting supera a la red neuronal, resultado consistente con la lite
 
 ---
 
+# 🗄️ Base de Datos SQLite — Hidrocarburos
+
+**Proyecto:** Predicción de calidad de crudos mediante Machine Learning  
+**Autor:** Tomás Malafiej — Licenciatura en Ciencia de Datos, UCASAL
+
+---
+
+## Objetivo
+
+Estructurar los datos del dataset DOE en una base de datos relacional normalizada, 
+demostrando capacidad de modelado de datos y consultas SQL aplicadas a problemas reales 
+de la industria petrolera.
+
+
