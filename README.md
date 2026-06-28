@@ -17,11 +17,11 @@ El proyecto utiliza datos reales del **U.S. Department of Energy — Bureau of M
 
 ## Problema de negocio
 
-Empresas de inspección como **AmSpec Argentina** realizan análisis físico-químicos de muestras de crudo para certificar su calidad antes de la comercialización. Este proyecto demuestra cómo un modelo de ML puede:
+Empresas de inspección como **Bureau Veritas** realizan análisis físico-químicos de muestras de crudo para certificar su calidad antes de la comercialización. Este proyecto demuestra cómo un modelo de ML puede:
 
-- **Clasificar** el tipo de crudo (Liviano / Mediano / Pesado) a partir de sus propiedades físicas
-- **Predecir** si un crudo es dulce o agrio **sin medir el azufre directamente**, reduciendo tiempos de análisis
-- **Cuantificar** las relaciones entre propiedades físico-químicas con respaldo estadístico sobre 9.000+ muestras reales
+- **Clasificar** el tipo de crudo (Liviano / Mediano / Pesado) a partir de sus propiedades físicas.
+- **Predecir** si un crudo es dulce o agrio **sin medir el azufre directamente**, reduciendo tiempos de análisis.
+- **Cuantificar** las relaciones entre propiedades físico-químicas con respaldo estadístico sobre 9.000+ muestras reales.
 
 ---
 
@@ -75,7 +75,7 @@ El Gradient Boosting supera a la red neuronal, resultado consistente con la lite
 # 🗄️ Base de Datos SQLite — Hidrocarburos
 
 **Proyecto:** Predicción de calidad de crudos mediante Machine Learning  
-**Autor:** Tomás Malafiej — Licenciatura en Ciencia de Datos, UCASAL
+**Autor:** Tomás Inti Malafiej — Licenciatura en Ciencia de Datos, UCASAL
 
 ---
 
@@ -101,16 +101,16 @@ la mayor parte de las decisiones del modelo.
 - Vol. gasolina/nafta alto → empuja hacia dulce ✅
 
 Estas relaciones son **físicamente coherentes** con la química del petróleo,
-lo que valida que el modelo aprendió patrones reales y no correlaciones espurias.
+lo que valida que el modelo aprendió patrones reales.
 
 **Punto de fluidez y Viscosidad** tienen impacto mínimo en la mayoría de
 las muestras, consistente con su baja correlación con el azufre observada
 en el EDA (notebook 01).
 
-### Valor para AmSpec
+### Valor para la industria
 
 El análisis SHAP permite **auditar cada predicción individualmente**:
 en lugar de un resultado de caja negra, el sistema puede explicar exactamente
 qué propiedad de la muestra determinó la clasificación. Esto es crítico
 en un contexto de certificación industrial donde la trazabilidad de las
-decisiones es un requisito.
+decisiones son esenciales.

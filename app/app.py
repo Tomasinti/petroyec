@@ -290,6 +290,6 @@ if predecir:
 # ── Footer ───────────────────────────────────────────────────
 st.divider()
 st.caption(
-    'Tomás Malafiej — Licenciatura en Ciencia de Datos, UCASAL Argentina | '
+    'Tomás Inti Malafiej — Licenciatura en Ciencia de Datos, UCASAL Argentina | '
     'Datos: U.S. DOE Bureau of Mines Crude Oil Analysis Database'
 )
