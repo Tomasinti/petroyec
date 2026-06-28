@@ -38,18 +38,21 @@ class RedNeuronalCrudo(nn.Module):
 # ── Cargar modelos ───────────────────────────────────────────
 @st.cache_resource
 def cargar_modelos():
-    gb     = joblib.load('../data/modelo_gb_dulce_agrio.pkl')
-    scaler = joblib.load('../data/scaler_dulce_agrio.pkl')
+    # Ruta base relativa a la ubicación de este archivo
+    base = os.path.join(os.path.dirname(__file__), '..', 'data')
+
+    gb     = joblib.load(os.path.join(base, 'modelo_gb_dulce_agrio.pkl'))
+    scaler = joblib.load(os.path.join(base, 'scaler_dulce_agrio.pkl'))
 
     modelo_nn = RedNeuronalCrudo(input_dim=8)
-    modelo_nn.load_state_dict(torch.load('../data/modelo_nn.pth',
-                              map_location=torch.device('cpu')))
+    modelo_nn.load_state_dict(torch.load(
+        os.path.join(base, 'modelo_nn.pth'),
+        map_location=torch.device('cpu')
+    ))
     modelo_nn.eval()
-    scaler_nn = joblib.load('../data/scaler_nn.pkl')
+    scaler_nn = joblib.load(os.path.join(base, 'scaler_nn.pkl'))
 
     return gb, scaler, modelo_nn, scaler_nn
-
-gb, scaler_gb, modelo_nn, scaler_nn = cargar_modelos()
 
 # ── Header ───────────────────────────────────────────────────
 st.title('🛢️ Predicción de Calidad de Hidrocarburos')
